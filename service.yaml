@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: microservice-service
+  namespace: microservice
+  annotations:
+    # Note that the backend talks over HTTP.
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+spec:
+  selector:
+    app: microservice
+  ports:
+  - protocol: TCP
+    name: http
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
