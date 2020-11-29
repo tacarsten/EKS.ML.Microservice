@@ -1,0 +1,76 @@
+version: 2.1
+
+orbs:
+  aws-eks: circleci/aws-eks@1.0.3
+  aws-ecr: circleci/aws-ecr@6.7.0
+  kubernetes: circleci/kubernetes@0.4.0
+  docker: circleci/docker@1.5.0
+  python-lint: qventus/python-lint@0.0.6
+
+jobs:
+  deploy-application:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+      docker-image-name:
+        description: |
+          Name of the docker image to be deployed
+        type: string
+      version-info:
+        description: |
+          App version information
+        type: string
+      aws-region:
+        description: |
+          AWS region
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - run:
+          name: Create deployment manifest
+          command: |
+            cat microservice-deployment.yaml.template |\
+               sed "s|DOCKER_IMAGE_NAME|<< parameters.docker-image-name >>|g" > microservice-app-deployment.yaml
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.cluster-name >>
+          install-kubectl: true
+          aws-region: << parameters.aws-region >>
+      - kubernetes/create-or-update-resource:
+          resource-file-path: "microservice-app-deployment.yaml"
+          #get-rollout-status: true
+          namespace: microservice
+          resource-name: microservice
+      - kubernetes/create-or-update-resource:
+          resource-file-path: "service.yaml"
+workflows:
+  deployment:
+    jobs:
+      - docker/hadolint:
+          dockerfiles: Dockerfile
+      - python-lint/lint:
+            checkout: false
+            requires: 
+              - docker/hadolint
+      - aws-ecr/build-and-push-image:
+          name: build-and-push-image
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          region: AWS_REGION
+          repo: microservice
+          dockerfile: Dockerfile
+          path: .
+          tag: latest
+          requires: 
+            - python-lint/lint
+      - deploy-application:
+          cluster-name: eks-cluster
+          aws-region: $AWS_REGION
+          docker-image-name: "${AWS_ECR_ACCOUNT_URL}/microservice:latest"
+          version-info: "latest"
+          requires:
+            - build-and-push-image
