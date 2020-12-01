@@ -1,0 +1,49 @@
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice# ./run_kubernetes.sh
+deployment.apps/microservice created
+NAME                            READY   STATUS              RESTARTS   AGE
+microservice-569bff5897-4mvjx   0/1     ContainerCreating   0          1s
+microservice-569bff5897-cr6vg   0/1     ContainerCreating   0          1s
+microservice-569bff5897-z9gfn   0/1     ContainerCreating   0          1s
+service/microservice-service created
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice#
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice# ./run_kubernetes.sh
+deployment.apps/microservice unchanged
+NAME                            READY   STATUS    RESTARTS   AGE
+microservice-569bff5897-4mvjx   1/1     Running   0          6m5s
+microservice-569bff5897-cr6vg   1/1     Running   0          6m5s
+microservice-569bff5897-z9gfn   1/1     Running   0          6m5s
+service/microservice-service unchanged
+NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP                                                               PORT(S)        AGE
+microservice-service   LoadBalancer   10.100.197.100   acae3afecfbd54caba1f62caf1f35683-1544322362.us-west-2.elb.amazonaws.com   80:32591/TCP   6m5s
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice#
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice#
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice# ./make_prediction.sh
+Port: 80
+{
+  "prediction": [
+    20.35373177134412
+  ]
+}
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice#
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice# kubectl logs microservice-569bff5897-4mvjx -n microservice
+ * Serving Flask app "app" (lazy loading)
+ * Environment: production
+   WARNING: Do not use the development server in a production environment.
+   Use a production WSGI server instead.
+ * Debug mode: on
+ * Running on http://0.0.0.0:80/ (Press CTRL+C to quit)
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 180-501-925
+192.168.78.2 - - [30/Nov/2020 20:49:29] "GET /favicon.ico HTTP/1.1" 404 -
+[2020-11-30 20:53:53,005] INFO in app: JSON payload:
+{'CHAS': {'0': 0}, 'RM': {'0': 6.575}, 'TAX': {'0': 296.0}, 'PTRATIO': {'0': 15.3}, 'B': {'0': 396.9}, 'LSTAT': {'0': 4.98}}
+[2020-11-30 20:53:53,019] INFO in app: Inference payload DataFrame:
+   CHAS     RM    TAX  PTRATIO      B  LSTAT
+0     0  6.575  296.0     15.3  396.9   4.98
+[2020-11-30 20:53:53,029] INFO in app: Scaling Payload:
+   CHAS     RM    TAX  PTRATIO      B  LSTAT
+0     0  6.575  296.0     15.3  396.9   4.98
+[2020-11-30 20:53:53,032] INFO in app: output prediction: [20.35373177134412]
+192.168.78.2 - - [30/Nov/2020 20:53:53] "POST /predict HTTP/1.1" 200 -
+root@ip-172-31-39-40:/home/ubuntu/eks-microservice#
